@@ -23,7 +23,7 @@ code = code.replace('/*DATA*/', pub + '/*PRIVATE*/\n')
 assert '</script' not in code.lower()
 
 cfg = {'url': 'https://ridwofzjkvkpjoshugya.supabase.co', 'key': 'sb_publishable_TRENg_MOlneJcz6jL6wDBQ_C3yIqNrI'}
-gate = '''<div id="gate"><div class="g-box"><div class="brand">Text<span style="color:var(--lime,#c6f432)">ia</span></div>
+gate = '''<div id="gate"><div class="g-box"><div class="brand">Text<span style="color:var(--oup)">ia</span><span style="color:var(--accent)">.</span></div>
 <p class="note" style="margin:-4px 0 0">La app de campo para comerciales de editoriales de texto.</p>
 <form id="gForm"><label class="f">Correo<input id="gEmail" type="email" autocomplete="username" required></label>
 <label class="f">Contraseña<input id="gPass" type="password" autocomplete="current-password" required></label>
@@ -41,10 +41,10 @@ gcss = '''<style>#gate{position:fixed;inset:0;z-index:100;background:var(--bg);d
 .lnk{background:none;border:0;padding:0;color:var(--oup);text-decoration:underline;cursor:pointer;font:inherit}</style>'''
 html = f'''<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<title>Textia</title><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#14171f">
-<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png?v=1"><link rel="icon" type="image/png" sizes="32x32" href="icon-32.png?v=1"><link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=1">
+<title>Textia</title><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#5B3DF5">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png?v=2"><link rel="icon" type="image/png" sizes="32x32" href="icon-32.png?v=2"><link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Textia">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Figtree:wght@300;400;600;700&family=Open+Sans:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@300;400;600;700;800&display=swap">
 {style}{gcss}</head><body>
 {gate}
 {body}
@@ -58,8 +58,8 @@ shutil.copy(ROOT / 'web/vendor/supabase.js', OUT / 'supabase.js')
 shutil.copy(SRC / 'shell.js', OUT / 'shell.js')
 for n in (32, 180, 192, 512):
     shutil.copy(SRC / f'icon/icon-{n}.png', OUT / f'icon-{n}.png')
-json.dump({"name": "Textia", "short_name": "Textia", "start_url": ".", "display": "standalone", "background_color": "#14171f", "theme_color": "#14171f",
-           "icons": [{"src": "icon-192.png?v=1", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png?v=1", "sizes": "512x512", "type": "image/png"}]},
+json.dump({"name": "Textia", "short_name": "Textia", "start_url": ".", "display": "standalone", "background_color": "#5B3DF5", "theme_color": "#5B3DF5",
+           "icons": [{"src": "icon-192.png?v=2", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png?v=2", "sizes": "512x512", "type": "image/png"}]},
           open(OUT / 'manifest.webmanifest', 'w'), ensure_ascii=False)
 # La primera versión instaló un service worker que guarda una copia vieja: este lo desinstala y recarga
 (OUT / 'sw.js').write_text('''self.addEventListener("install",()=>self.skipWaiting());

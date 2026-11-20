@@ -100,7 +100,28 @@ for a, b in [(' Soria: 5 días, pensados para hacerlos seguidos.', ''),
 
 t = t.replace('if(f.prov&&NZ(c.prov)!==NZ(f.prov))continue;', 'if(f.prov&&NZ(c.prov)!==NZ(f.prov))continue;if(f.zona&&NZ(c.zona)!==NZ(f.zona))continue;')
 t = re.sub(r'\boxford_', 'propia_', t); t = re.sub(r'_oxford\b', '_propia', t); t = re.sub(r'\boxford:', 'propia:', t)
-left = [m.start() for m in re.finditer(r'Oxford|Iván|Soria|Tinta de Plata|\bOUP\b', t)]
+# --- Paleta y letra de Textia (en lugar de la marca OUP) ---
+# Violeta de marca + coral de acento + tinta índigo. Contrastes AA; nada se distingue solo por color.
+LIGHT = ('--bg:#F7F6FB; --surface:#FFFFFF; --ink:#1E1B3A; --muted:#5F5B78; --line:#E4E1EE; --soft:#F0EEF7;\n'
+         '  --oup:#5B3DF5; --link:#4F2FE0; --go:#0F7B6C; --amber:#B4451F; --grey:#7C7891; --accent:#FF7A59; --orange:#FF7A59;\n'
+         '  --display:"Bricolage Grotesque","Figtree",system-ui,sans-serif; --light:"Figtree",system-ui,sans-serif; --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;')
+DARK = ('--bg:#12111C;--surface:#1B1A2B;--ink:#F2F0FA;--muted:#AEAAC4;--line:#2E2B45;--soft:#24223A;--oup:#A99BFF;'
+        '--link:#BDB2FF;--go:#5FD4BE;--amber:#FF9E7A;--grey:#9A96B0;--accent:#FF8F6E')
+a = t.index('/* ===== Marca OUP'); b = t.index('body{font-family:var(--body)}', a)
+t = t[:a] + ('/* ===== Marca Textia: violeta, coral e índigo; Bricolage Grotesque + Figtree ===== */\n:root{\n  ' + LIGHT + '\n}\n'
+             '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){' + DARK + '}}\n:root[data-theme="dark"]{' + DARK + '}\n') + t[b:]
+t = t.replace('h1,h2,.c-tt h1,.h-c2,.brand,#shIn h2{font-family:var(--display)!important;font-weight:400!important;font-stretch:normal!important;letter-spacing:0}',
+              'h1,h2,.c-tt h1,.h-c2,.brand,#shIn h2{font-family:var(--display)!important;font-weight:700!important;font-stretch:normal!important;letter-spacing:-.02em}')
+t = t.replace('.h-card{background:#011E41;', '.h-card{background:linear-gradient(135deg,#3B22C9 0%,#5B3DF5 100%);')
+t = t.replace('.h-card .h-c2{color:#C8DC00!important}', '.h-card .h-c2{color:#FFD9CC!important}')
+for x, y in [('#011E41', '#1E1B3A'), ('#C8DC00', '#FF8F6E'), ('rgba(1,30,65', 'rgba(30,27,58'), ('rgba(200,220,0', 'rgba(255,143,110'),
+             ('#0B2B52', '#24223A'), ('#2A4A75', '#3A3660'), ('#F2EEDA', '#F2F0FA'), ('#8E9AB0', '#9A96B0'), ('#011225', '#12111C')]:
+    t = t.replace(x, y)
+t = t.replace('family=DM+Serif+Display&family=Figtree:wght@300;400;600;700&family=Open+Sans:wght@400;600;700;800',
+              'family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@300;400;600;700;800')
+
+t = t.replace('Oxford', 'la editorial propia')   # quedan solo comentarios
+left = [m.start() for m in re.finditer(r'Oxford|Iván|Soria|Tinta de Plata|\bOUP\b|#011E41|#C8DC00', t)]
 sys.stdout.write(f'restantes: {len(left)}\n')
 for p in left[:20]: sys.stdout.write('  ' + t[max(0, p-60):p+40].replace('\n', ' ') + '\n')
 (ROOT / 'src/app.html').write_text(t)
