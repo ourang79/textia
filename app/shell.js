@@ -39,7 +39,7 @@ async function boot(){
  booted=true;
  const nombre=(me.nombre||"").split(" ")[0];
  window.TX={org:me.org,nombre,propia:me.propia,editorial:me.editorial,zona:me.zona||"tu zona",curso:me.curso,
-   abrev:(me.propia||"").split(/\s+/).filter(w=>w.length>2).map(w=>w[0]).join("").toUpperCase().slice(0,3)||"TUY"};
+   abrev:(me.propia||"").split(/\s+/).filter(w=>w.length>1).map(w=>w[0]).join("").toUpperCase().slice(0,3)||"TUY"};
  window.EXT={db:makeDB(),sample,sb};
  const order=["catalogo","centros","contactos","rutas"];
  const priv=order.map(n=>(data.find(d=>d.name===n)||{}).js||"").join("\n")+'\nZONAS=[...new Set(CENTROS.map(c=>c.zona).filter(Boolean))].sort();';
