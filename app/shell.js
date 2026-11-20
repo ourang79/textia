@@ -1,0 +1,61 @@
+// Textia · capa externa: inicio de sesión, editorial del usuario, carga de datos y adaptador de base de datos
+(function(){
+const CFG=window.TEXTIA_CFG;
+const sb=window.supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:true,autoRefreshToken:true}});
+const $=id=>document.getElementById(id);
+const gate=$("gate"),msg=$("gMsg");
+const show=t=>{msg.textContent=t||""};
+let ORG=null;
+
+// Mismo interfaz que usaba la app (colecciones y documentos), guardado en la tabla docs de la editorial
+function makeDB(){
+ const cache={};
+ const docRef=(coll,id)=>{const set=async data=>{cache[coll]=cache[coll]||{};cache[coll][id]=data;
+   const {error}=await sb.from("docs").upsert({org_id:ORG,coll,id,data,updated_at:new Date().toISOString()});if(error)throw error};
+  return {set,async update(p){const cur=(cache[coll]||{})[id]||{};return set({...cur,...p})},
+   async delete(){if(cache[coll])delete cache[coll][id];const {error}=await sb.from("docs").delete().eq("org_id",ORG).eq("coll",coll).eq("id",id);if(error)throw error}}};
+ return {collection(coll){return {doc:id=>docRef(coll,id),
+  onSnapshot(cb,err){let t=null;const load=async()=>{const {data,error}=await sb.from("docs").select("id,data").eq("org_id",ORG).eq("coll",coll).limit(5000);
+    if(error){err&&err({code:error.code||"error"});return}cache[coll]=Object.fromEntries(data.map(r=>[r.id,r.data]));cb({docs:data.map(r=>({id:r.id,data:()=>r.data}))})};
+   load();sb.channel("c_"+coll).on("postgres_changes",{event:"*",schema:"public",table:"docs",filter:"coll=eq."+coll},()=>{clearTimeout(t);t=setTimeout(load,400)}).subscribe();
+   document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});return ()=>{}}}}};
+}
+async function sample(prompt,opts={}){
+ const {data:{session}}=await sb.auth.getSession();
+ const r=await fetch(CFG.url+"/functions/v1/preguntar",{method:"POST",signal:opts.signal,headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token,apikey:CFG.key},body:JSON.stringify({prompt})});
+ if(r.status===429)throw {code:"rate_limited"};
+ const j=await r.json().catch(()=>({}));if(!r.ok)throw {text:j.error||"No he podido responder ahora."};
+ if(opts.onText)opts.onText({text:j.text});return {text:j.text};
+}
+let booted=false;
+async function boot(){
+ if(booted)return;show("Cargando tus datos…");$("gForm").hidden=true;$("gDemo").hidden=true;$("gOut").hidden=false;
+ const {data:me,error:e1}=await sb.rpc("mi_editorial");
+ if(e1||!me){show("Has entrado, pero tu cuenta todavía no está dada de alta en ninguna editorial.");return}
+ ORG=me.org;
+ const {data,error}=await sb.from("datasets").select("name,js").eq("org_id",ORG);
+ if(error){show("No se pudieron cargar los datos ("+error.message+").");return}
+ if(!data.length){show("Tu editorial todavía no tiene datos cargados.");return}
+ booted=true;
+ const nombre=(me.nombre||"").split(" ")[0];
+ window.TX={org:me.org,nombre,propia:me.propia,editorial:me.editorial,zona:me.zona||"tu zona",curso:me.curso,
+   abrev:(me.propia||"").split(/\s+/).filter(w=>w.length>2).map(w=>w[0]).join("").toUpperCase().slice(0,3)||"TUY"};
+ window.EXT={db:makeDB(),sample,sb};
+ const order=["catalogo","centros","contactos","rutas"];
+ const priv=order.map(n=>(data.find(d=>d.name===n)||{}).js||"").join("\n")+'\nZONAS=[...new Set(CENTROS.map(c=>c.zona).filter(Boolean))].sort();';
+ const code=$("app-code").textContent.replace("/*PRIVATE*/",()=>priv);
+ const s=document.createElement("script");s.textContent=code;document.body.appendChild(s);
+ gate.hidden=true;$("gOutBar").hidden=false;
+}
+async function login(email,pass){show("Entrando…");
+ const {error}=await sb.auth.signInWithPassword({email,password:pass});
+ if(error)show(error.message==="Invalid login credentials"?"Correo o contraseña incorrectos.":error.message);}
+$("gForm").addEventListener("submit",e=>{e.preventDefault();login($("gEmail").value.trim(),$("gPass").value)});
+$("gDemoBtn").addEventListener("click",()=>login("demo@textia.es","textia-demo"));
+$("gReset").addEventListener("click",async()=>{const email=$("gEmail").value.trim();if(!email){show("Escribe tu correo.");return}
+ const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href.split("#")[0]});show(error?error.message:"Te he enviado un correo para cambiar la contraseña.")});
+const out=async()=>{await sb.auth.signOut();location.reload()};
+$("gOut").addEventListener("click",out);$("gOutBar").addEventListener("click",out);
+sb.auth.onAuthStateChange((ev,session)=>{if(ev==="PASSWORD_RECOVERY"){const p=prompt("Nueva contraseña (mínimo 8 caracteres)");if(p)sb.auth.updateUser({password:p}).then(({error})=>show(error?error.message:"Contraseña cambiada."));return}
+ if(session)boot();else{gate.hidden=false}});
+})();
