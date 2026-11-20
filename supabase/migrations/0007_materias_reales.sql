@@ -243,9 +243,9 @@ begin
               dept::public.person_role, case dept when 'direccion' then 'Dirección' when 'jefe_estudios' then 'Jefatura de estudios' else 'Secretaría' end, 'web del centro', date '2026-09-20')
       returning id into p_id; persons := persons || p_id;
     end loop;
-    if kind in ('IES') or (kind = 'Colegio' and exists (select 1 from enrollment where school_id = s_id and stage = 'ESO')) then
+    if kind in ('IES') or (kind in ('Colegio','CEO') and exists (select 1 from enrollment where school_id = s_id and stage = 'ESO')) then
       foreach dept in array array['Inglés','Lengua','Matemáticas','Geografía e Historia','Biología y Geología','Física y Química','Francés','Tecnología','Música','Dibujo','Educación Física','Filosofía','Latín y Griego','Orientación']
-                           || case when kind = 'IES' then array['Economía','Alemán'] else array[]::text[] end loop
+                           || case when kind = 'IES' then array['Economía','Alemán'] when exists (select 1 from adoptions where school_id = s_id and subject = 'Alemán') then array['Alemán'] else array[]::text[] end loop
         if kind <> 'IES' and dept in ('Latín y Griego','Filosofía') and not exists (select 1 from enrollment where school_id = s_id and stage = 'BAC') then continue; end if;
         for g in 0..(case when kind = 'IES' and dept in ('Inglés','Lengua','Matemáticas') then 3 when kind = 'IES' then 1 else 0 end) loop
           insert into people(org_id, school_id, full_name, role, role_detail, department, stage, email, source, source_date)
@@ -258,12 +258,14 @@ begin
       end loop;
     end if;
     if kind in ('CEIP','CEO','Colegio') then
-      foreach dept in array array['Coordinación Infantil','Coordinación 1er ciclo','Coordinación 2º ciclo','Coordinación 3er ciclo','Inglés','Inglés'] loop
+      foreach dept in array array['Coordinación Infantil','Coordinación 1er ciclo','Coordinación 2º ciclo','Coordinación 3er ciclo','Inglés','Inglés Infantil']
+                           || case when bil_pri then array['Coordinación de la sección bilingüe'] else array[]::text[] end
+                           || case when exists (select 1 from adoptions where school_id = s_id and stage = 'PRI' and subject = 'Francés') then array['Maestra de Francés'] else array[]::text[] end loop
         insert into people(org_id, school_id, full_name, role, role_detail, department, stage, email, source, source_date)
         values (v_org, s_id, case when random() < 0.75 then private.pick(first_f) else private.pick(first_m) end || ' ' || private.pick(surn) || ' ' || private.pick(surn),
-                case when dept like 'Coord%' then 'coordinador' else 'profesor' end::public.person_role,
-                case when dept like 'Coord%' then dept else 'Maestra especialista de Inglés' end,
-                case when dept like 'Coordinación Infantil' then 'Infantil' when dept like 'Coord%' then replace(dept, 'Coordinación ', '') else 'Inglés' end,
+                case when dept like 'Coord%' or dept like 'Maestra%' then 'coordinador' else 'profesor' end::public.person_role,
+                case when dept like 'Coord%' or dept like 'Maestra%' then dept when dept = 'Inglés Infantil' then 'Maestra de Inglés de Infantil' else 'Maestra de Inglés de Primaria' end,
+                case when dept = 'Coordinación Infantil' then 'Infantil' when dept like 'Coordinación de la sección%' then 'Bilingüismo' when dept like 'Coord%' then replace(dept, 'Coordinación ', '') when dept like 'Maestra%' then 'Francés' else 'Inglés' end,
                 case when dept like '%Infantil' then 'INF' else 'PRI' end::public.stage,
                 case when random() < 0.4 then 'maestra' || floor(random() * 99999)::int || '@demo.textia.es' end, 'web del centro', date '2026-09-20')
         returning id into p_id; persons := persons || p_id;
@@ -366,7 +368,7 @@ begin
                 from ppl where ppl.school_id = s.id and role in ('direccion', 'jefe_estudios', 'secretaria')),
         'jefes', (select jsonb_agg(jsonb_build_array(department, full_name, coalesce(email, ''))) from ppl where ppl.school_id = s.id and role = 'jefe_departamento'),
         'coord', (select jsonb_agg(jsonb_build_array(role_detail, full_name, coalesce(email, ''))) from ppl where ppl.school_id = s.id and role = 'coordinador'),
-        'ing', (select jsonb_agg(jsonb_build_array(coalesce(role_detail, 'Maestra de Inglés'), full_name, coalesce(email, ''))) from ppl where ppl.school_id = s.id and stage in ('PRI', 'INF') and department = 'Inglés'),
+        'ing', (select jsonb_agg(jsonb_build_array(coalesce(role_detail, 'Maestra de Inglés'), full_name, coalesce(email, ''))) from ppl where ppl.school_id = s.id and stage in ('PRI', 'INF') and department = 'Inglés' and role <> 'coordinador'),
         'profs', pj.profs,
         'profs_curso', '2026-2027',
         'fuente', jsonb_build_array('web del centro (demo)'))) v

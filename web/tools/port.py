@@ -121,6 +121,7 @@ t = t.replace('family=DM+Serif+Display&family=Figtree:wght@300;400;600;700&famil
               'family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@300;400;600;700;800')
 
 t = t.replace('Oxford', 'la editorial propia')   # quedan solo comentarios
+t = t.replace('const DEPMAP={', 'const DEPMAP={"Digitalización":"Tecnología","Hª Mundo Contemporáneo":"Geografía e Historia","Alemán":"Alemán",', 1)
 # En la puerta: si el jefe/a no está confirmado pero su nombre sale de la web del centro, se muestra ya (marcado "web")
 a = '<span class="usa-j${u.n?"":" q"}">${u.n?esc(u.n):"¿Quién es el jefe/a?"}</span>'
 assert a in t, 'usa-j'
