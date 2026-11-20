@@ -246,7 +246,7 @@ begin
     if kind in ('IES') or (kind in ('Colegio','CEO') and exists (select 1 from enrollment where school_id = s_id and stage = 'ESO')) then
       foreach dept in array array['Inglés','Lengua','Matemáticas','Geografía e Historia','Biología y Geología','Física y Química','Francés','Tecnología','Música','Dibujo','Educación Física','Filosofía','Latín y Griego','Orientación']
                            || case when kind = 'IES' then array['Economía','Alemán'] when exists (select 1 from adoptions where school_id = s_id and subject = 'Alemán') then array['Alemán'] else array[]::text[] end loop
-        if kind <> 'IES' and dept in ('Latín y Griego','Filosofía') and not exists (select 1 from enrollment where school_id = s_id and stage = 'BAC') then continue; end if;
+        if kind <> 'IES' and dept = 'Latín y Griego' and not exists (select 1 from enrollment where school_id = s_id and stage = 'BAC') then continue; end if;
         for g in 0..(case when kind = 'IES' and dept in ('Inglés','Lengua','Matemáticas') then 3 when kind = 'IES' then 1 else 0 end) loop
           insert into people(org_id, school_id, full_name, role, role_detail, department, stage, email, source, source_date)
           values (v_org, s_id, case when random() < 0.6 then private.pick(first_f) else private.pick(first_m) end || ' ' || private.pick(surn) || ' ' || private.pick(surn),
