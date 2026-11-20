@@ -121,6 +121,10 @@ t = t.replace('family=DM+Serif+Display&family=Figtree:wght@300;400;600;700&famil
               'family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@300;400;600;700;800')
 
 t = t.replace('Oxford', 'la editorial propia')   # quedan solo comentarios
+# En la puerta: si el jefe/a no está confirmado pero su nombre sale de la web del centro, se muestra ya (marcado "web")
+a = '<span class="usa-j${u.n?"":" q"}">${u.n?esc(u.n):"¿Quién es el jefe/a?"}</span>'
+assert a in t, 'usa-j'
+t = t.replace(a, '<span class="usa-j${u.n||u.web?"":" q"}">${u.n?esc(u.n):u.web?esc(u.web.n)+" <small>(web)</small>":"¿Quién es el jefe/a?"}</span>')
 left = [m.start() for m in re.finditer(r'Oxford|Iván|Soria|Tinta de Plata|\bOUP\b|#011E41|#C8DC00', t)]
 sys.stdout.write(f'restantes: {len(left)}\n')
 for p in left[:20]: sys.stdout.write('  ' + t[max(0, p-60):p+40].replace('\n', ' ') + '\n')
