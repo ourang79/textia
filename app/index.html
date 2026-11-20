@@ -619,6 +619,20 @@ a,.lnk{color:var(--link)}
 .gc.split>.gc.go::after,.gc.split>.gc.oxgo::after{content:none}
 .gc-n{position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);font-size:.55rem;font-weight:800;background:var(--bg);color:var(--ink);border:1px solid var(--ink);border-radius:6px;padding:0 4px;line-height:1.3;white-space:nowrap;z-index:1}
 .gx{row-gap:10px}
+
+.pz-top{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--soft);font-size:.9rem}
+.pz-lk{display:flex;gap:12px;margin-left:auto}
+.pz-g{margin:16px 0 4px;font:800 .72rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pz-l{display:flex;flex-direction:column}
+.pz-r{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.pz-c{flex:none;width:30px;height:30px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--surface);font:800 1rem var(--body);cursor:pointer;display:grid;place-items:center;margin-top:1px}
+.pz-r.ok .pz-c{background:var(--ink);border-color:var(--ink)}
+.pz-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.pz-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.pz-t b{font-size:1rem}.pz-t span{font-size:.8rem;font-weight:700;color:var(--muted)}
+.pz-hs{display:flex;gap:5px;flex-wrap:wrap}
+.pz-h{padding:3px 8px;border-radius:6px;border:1.5px solid var(--go);color:var(--go);font:700 .78rem var(--body)}
+.pz-h.fam{border-style:dashed;border-color:var(--muted);color:var(--muted)}
+.pz-b small{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
 </style><style>#gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:16px}
 .g-box{width:min(380px,100%);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:12px}
 .g-box .brand{font-size:2rem;font-weight:800;letter-spacing:-.02em}
@@ -1294,6 +1308,7 @@ $("door").addEventListener("toggle",e=>{const d=e.target.closest&&e.target.close
 $("door").addEventListener("toggle",e=>{const d=e.target;if(!d.classList||!d.classList.contains("usa"))return;const k=CUR+"|"+d.dataset.up;if(d.open)OPENUS.add(k);else OPENUS.delete(k)},true);
 $("door").addEventListener("click",async e=>{const c=cenById(CUR);if(!c)return;const id=c._doc,f=fget(id);
  const today=()=>new Date().toLocaleDateString("es-ES");
+ const vp=e.target.closest("[data-vp]");if(vp){const n=vp.dataset.vp;f.vp=f.vp||{};if(f.vp[n])delete f.vp[n];else f.vp[n]=today();saveFicha(id);drawDoor();return}
  const pv=e.target.closest("[data-pv]");if(pv){const[p,i]=pv.dataset.pv.split("|");const L=(f.pr||{})[p]||[];if(L[i]){if(L[i].v)delete L[i].v;else L[i].v=today()}saveFicha(id);drawDoor();return}
  const pd=e.target.closest("[data-pdel]");if(pd){const[p,i]=pd.dataset.pdel.split("|");const L=(f.pr||{})[p]||[];L.splice(+i,1);saveFicha(id);drawDoor();return}
  const pa=e.target.closest("[data-padd]");if(pa){const[p,i]=pa.dataset.padd.split("|");const u=usersOf(c).find(x=>x.path===p);const w=u&&u.wp[+i];if(w){f.pr=f.pr||{};(f.pr[p]=f.pr[p]||[]).push({n:w[0],h:w[3]||"",e:w[2]||""});OPENUS.add(CUR+"|"+p);saveFicha(id);drawDoor()}return}
@@ -1551,6 +1566,24 @@ function usersOf(c){const L=(c.libros||[]).filter(b=>b.editorial===OWN&&ETK.incl
 function same2(a,b){const z=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().split(/[^a-z]+/).filter(w=>w.length>2);const A=z(a),B=z(b);if(!A.length||!B.length)return false;const[s,l]=A.length<=B.length?[A,B]:[B,A];return s.every(w=>l.includes(w))}
 function webProfs(c,u){const P=(CONTACTOS[c._doc]||{}).profs;if(!P)return[];const nm=u.path.startsWith("dep.")?u.path.slice(4).replace(/_/g," "):u.lab;const out=[];
  Object.entries(P).forEach(([k,xs])=>{if(u.path.startsWith("dep.")?(k===nm||(u.rx&&u.rx.test(k))):(u.rx&&u.rx.test(k)))xs.forEach(x=>out.push(x))});return out}
+
+function horasOf(h){return String(h||"").split(" · ").filter(Boolean).map(x=>{const fam=/^familias/i.test(x);return `<span class="pz-h${fam?" fam":""}">${fam?"Familias":"Libre"} ${esc(x.replace(/^(libre|familias)\s*/i,"").replace(/^\w/,m=>m.toLowerCase()))}</span>`}).join("")}
+function personasHTML(c){const k=CONTACTOS[c._doc]||{};const f=fget(c._doc);const vp=f.vp||{};
+ const H={};Object.values(k.profs||{}).forEach(xs=>xs.forEach(x=>{if(x[3]&&!H[x[0]])H[x[0]]=x[3]}));
+ const U=usersOf(c);const uOf=n=>U.find(u=>(u.n&&same2(u.n,n))||(u.web&&same2(u.web.n,n)));
+ const row=(n,rol,em)=>{const u=uOf(n);const seen=vp[n]||(u&&u.v)||"";const notes=[seen?"Visto el "+seen:"Sin visitar"];
+   if(u&&u.go)notes.push(`tus libros cambian en ${YEAR_W}-${String(YEAR_W+1).slice(2)}`);else if(u)notes.push("usa tus libros");
+   return `<div class="pz-r${seen?" ok":""}"><button type="button" class="pz-c" data-vp="${esc(n)}" aria-pressed="${!!seen}" aria-label="${seen?"Desmarcar visto":"Marcar como visto"}: ${esc(n)}">${seen?"✓":""}</button>
+   <div class="pz-b"><div class="pz-t"><b>${esc(n)}</b><span>${esc(rol)}</span></div>${H[n]?`<div class="pz-hs">${horasOf(H[n])}</div>`:""}
+   <small>${notes.map(esc).join(" · ")}${em?` · <a href="mailto:${esc(em)}">${esc(em)}</a>`:""}</small></div></div>`};
+ const grp=(t,arr)=>arr&&arr.length?`<h3 class="pz-g">${t}</h3><div class="pz-l">${arr.join("")}</div>`:"";
+ const dir=(k.dir||[]).find(p=>/^direct/i.test(p[0]));
+ const links=[k.tel?`<a href="tel:${esc(k.tel)}">☎ ${esc(String(k.tel).replace(/(\d{3})(\d{3})(\d{3})/,"$1 $2 $3"))}</a>`:"",k.geo?`<a href="https://www.google.com/maps/dir/?api=1&destination=${k.geo[0]},${k.geo[1]}" target="_blank" rel="noopener">Cómo llegar</a>`:""].filter(Boolean).join("");
+ const all=[...(k.dir||[]),...(k.jefes||[]),...(k.coord||[]),...(k.ing||[])].map(p=>p[1]);const nv=all.filter(n=>vp[n]||(uOf(n)||{}).v).length;
+ return `<div class="pz-top"><span><b>Recreo</b> ${esc(f.recreo||"sin apuntar")}</span>${dir?`<span>${esc(dir[0])}: <b>${esc(dir[1])}</b></span>`:""}<span><b>${nv}</b> de ${all.length} vistas</span>${links?`<span class="pz-lk">${links}</span>`:""}</div>
+ <p class="note" style="margin:6px 0 2px">Las horas son las libres y de atención a familias que publica el centro. Toca la casilla al hablar con alguien.</p>
+ ${grp("Jefes de departamento",(k.jefes||[]).map(p=>row(p[1],p[0],p[2])))}${grp("Coordinación",(k.coord||[]).map(p=>row(p[1],p[0],p[2])))}${grp("Inglés",(k.ing||[]).map(p=>row(p[1],p[0].replace(/^Maestra de /,""),p[2])))}${grp("Equipo directivo",(k.dir||[]).map(p=>row(p[1],p[0],p[2])))}
+ ${!(k.jefes||k.coord||k.ing||k.dir)?`<p class="empty">Este centro no publica nombres en su web. Apúntalos abajo.</p>`:""}`}
 function personasOf(c){const U=usersOf(c);const tot=U.reduce((s,u)=>s+u.tot,0),vis=U.reduce((s,u)=>s+u.vis,0);return {U,tot,vis,pend:tot-vis,sinN:U.filter(u=>!u.n).length}}
 let OPENUS=new Set();
 function usaHTML(c,u){const key=u.path.split(".")[1];const isDep=u.path.startsWith("dep.");const mat=u.lab.replace(/^Jefe\/a de /,"");const rol=isDep?"Jefe/a de departamento":u.lab;
@@ -1750,7 +1783,7 @@ function drawDoor(){const c=cenById(CUR);$("doorPick").hidden=!!c;
     const lab=(ox?""+OWN+"":eds[0])+(st.includes("go")?", cambia en "+YW:st.includes("am")?", cambia en "+(YEAR_W+1):", fijo");return `<button type="button" class="gc ${cls}" data-gcell="${esc(et+"|"+rl+"|"+kk)}" aria-label="${esc(rl+" "+kk+": "+lab)}">${ox?""+OWNAB+"":abr(eds[0])}${eds.length>1?"+":""}<small>${cb[0].implantado?String(cb[0].implantado).slice(2):""}</small></button>`}).join("")}`).join("")}</div>
    <div class="gx-leg"><span><span class="gc go" aria-hidden="true">SM</span>Rival · cambia en ${YW}</span><span><span class="gc am" aria-hidden="true">SM</span>Rival · cambia en ${YEAR_W+1}-${String(YEAR_W+2).slice(2)}</span><span><span class="gc ox oxgo" aria-hidden="true">${OWNAB}</span>Tuyo · cambia en ${YW}</span><span><span class="gc ox" aria-hidden="true">${OWNAB}</span>Tuyo · fijo</span><span><span class="gc lk" aria-hidden="true">SM</span>Rival · fijo</span><span><span class="gc split" aria-hidden="true" style="width:34px"><span class="gc ox">O</span><span class="gc lk">S</span></span>Grupos del mismo curso con libros distintos (con sus alumnos)</span>${et==="INF"?"<span>Infantil puede cambiar cada curso</span>":""}</div>
    <p class="note">Toca una casilla para ver el libro, qué ofrecer y apuntar qué te han dicho.</p>`}}
- if(CSEG==="per"){h+=contactsHTML(c).replace('<details class="panel ct">','<details class="panel ct" open>')+fichaParts(c,["s:Personas"])+`<div class="row sp" style="margin-top:6px"><span class="saved" id="fvSt"></span></div>`}
+ if(CSEG==="per"){h+=personasHTML(c)+`<details class="later" style="margin-top:16px"><summary>Editar personas y reuniones de departamento</summary>${fichaParts(c,["s:Personas"])}</details>`+`<div class="row sp" style="margin-top:6px"><span class="saved" id="fvSt"></span></div>`}
  if(CSEG==="vis"){const f=fget(c._doc);const fa=faltan(c);const est=!!(f.est||{}).ok||Object.values((f.est||{}).rows||{}).some(r=>r&&r.al);
   h+=`<h3 class="c-h">Nota de la visita</h3><textarea id="cNotes" class="fi" rows="4" placeholder="Qué te han dicho y con quién has hablado. Puedes dictarlo con el micro del teclado.">${esc(BORR[c._doc]||"")}</textarea>
   <div class="chips" style="margin:8px 0" id="vTip">${VTIPOS.map((t,i)=>`<button class="chip" type="button" data-vt="${esc(t)}" aria-pressed="${i===0}">${esc(t)}</button>`).join("")}</div>

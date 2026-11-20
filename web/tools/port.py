@@ -122,6 +122,49 @@ t = t.replace('family=DM+Serif+Display&family=Figtree:wght@300;400;600;700&famil
 
 t = t.replace('Oxford', 'la editorial propia')   # quedan solo comentarios
 t = t.replace('const DEPMAP={', 'const DEPMAP={"Digitalización":"Tecnología","Hª Mundo Contemporáneo":"Geografía e Historia","Alemán":"Alemán",', 1)
+# --- Pestaña Personas: una lista por persona (cargo, horas libres como etiquetas, visto o no), como en la web ---
+PERS_JS = r'''
+function horasOf(h){return String(h||"").split(" · ").filter(Boolean).map(x=>{const fam=/^familias/i.test(x);return `<span class="pz-h${fam?" fam":""}">${fam?"Familias":"Libre"} ${esc(x.replace(/^(libre|familias)\s*/i,"").replace(/^\w/,m=>m.toLowerCase()))}</span>`}).join("")}
+function personasHTML(c){const k=CONTACTOS[c._doc]||{};const f=fget(c._doc);const vp=f.vp||{};
+ const H={};Object.values(k.profs||{}).forEach(xs=>xs.forEach(x=>{if(x[3]&&!H[x[0]])H[x[0]]=x[3]}));
+ const U=usersOf(c);const uOf=n=>U.find(u=>(u.n&&same2(u.n,n))||(u.web&&same2(u.web.n,n)));
+ const row=(n,rol,em)=>{const u=uOf(n);const seen=vp[n]||(u&&u.v)||"";const notes=[seen?"Visto el "+seen:"Sin visitar"];
+   if(u&&u.go)notes.push(`tus libros cambian en ${YEAR_W}-${String(YEAR_W+1).slice(2)}`);else if(u)notes.push("usa tus libros");
+   return `<div class="pz-r${seen?" ok":""}"><button type="button" class="pz-c" data-vp="${esc(n)}" aria-pressed="${!!seen}" aria-label="${seen?"Desmarcar visto":"Marcar como visto"}: ${esc(n)}">${seen?"✓":""}</button>
+   <div class="pz-b"><div class="pz-t"><b>${esc(n)}</b><span>${esc(rol)}</span></div>${H[n]?`<div class="pz-hs">${horasOf(H[n])}</div>`:""}
+   <small>${notes.map(esc).join(" · ")}${em?` · <a href="mailto:${esc(em)}">${esc(em)}</a>`:""}</small></div></div>`};
+ const grp=(t,arr)=>arr&&arr.length?`<h3 class="pz-g">${t}</h3><div class="pz-l">${arr.join("")}</div>`:"";
+ const dir=(k.dir||[]).find(p=>/^direct/i.test(p[0]));
+ const links=[k.tel?`<a href="tel:${esc(k.tel)}">☎ ${esc(String(k.tel).replace(/(\d{3})(\d{3})(\d{3})/,"$1 $2 $3"))}</a>`:"",k.geo?`<a href="https://www.google.com/maps/dir/?api=1&destination=${k.geo[0]},${k.geo[1]}" target="_blank" rel="noopener">Cómo llegar</a>`:""].filter(Boolean).join("");
+ const all=[...(k.dir||[]),...(k.jefes||[]),...(k.coord||[]),...(k.ing||[])].map(p=>p[1]);const nv=all.filter(n=>vp[n]||(uOf(n)||{}).v).length;
+ return `<div class="pz-top"><span><b>Recreo</b> ${esc(f.recreo||"sin apuntar")}</span>${dir?`<span>${esc(dir[0])}: <b>${esc(dir[1])}</b></span>`:""}<span><b>${nv}</b> de ${all.length} vistas</span>${links?`<span class="pz-lk">${links}</span>`:""}</div>
+ <p class="note" style="margin:6px 0 2px">Las horas son las libres y de atención a familias que publica el centro. Toca la casilla al hablar con alguien.</p>
+ ${grp("Jefes de departamento",(k.jefes||[]).map(p=>row(p[1],p[0],p[2])))}${grp("Coordinación",(k.coord||[]).map(p=>row(p[1],p[0],p[2])))}${grp("Inglés",(k.ing||[]).map(p=>row(p[1],p[0].replace(/^Maestra de /,""),p[2])))}${grp("Equipo directivo",(k.dir||[]).map(p=>row(p[1],p[0],p[2])))}
+ ${!(k.jefes||k.coord||k.ing||k.dir)?`<p class="empty">Este centro no publica nombres en su web. Apúntalos abajo.</p>`:""}`}
+'''
+PERS_CSS = '''
+.pz-top{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--soft);font-size:.9rem}
+.pz-lk{display:flex;gap:12px;margin-left:auto}
+.pz-g{margin:16px 0 4px;font:800 .72rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pz-l{display:flex;flex-direction:column}
+.pz-r{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.pz-c{flex:none;width:30px;height:30px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--surface);font:800 1rem var(--body);cursor:pointer;display:grid;place-items:center;margin-top:1px}
+.pz-r.ok .pz-c{background:var(--ink);border-color:var(--ink)}
+.pz-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.pz-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.pz-t b{font-size:1rem}.pz-t span{font-size:.8rem;font-weight:700;color:var(--muted)}
+.pz-hs{display:flex;gap:5px;flex-wrap:wrap}
+.pz-h{padding:3px 8px;border-radius:6px;border:1.5px solid var(--go);color:var(--go);font:700 .78rem var(--body)}
+.pz-h.fam{border-style:dashed;border-color:var(--muted);color:var(--muted)}
+.pz-b small{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+'''
+t = t.replace('function personasOf(c){', PERS_JS + 'function personasOf(c){', 1)
+a = 'if(CSEG==="per"){h+=contactsHTML(c).replace(\'<details class="panel ct">\',\'<details class="panel ct" open>\')+fichaParts(c,["s:Personas"])+'
+assert a in t, 'per'
+t = t.replace(a, 'if(CSEG==="per"){h+=personasHTML(c)+`<details class="later" style="margin-top:16px"><summary>Editar personas y reuniones de departamento</summary>${fichaParts(c,["s:Personas"])}</details>`+')
+a = ' const pv=e.target.closest("[data-pv]");'
+assert t.count(a) == 1, 'pv'
+t = t.replace(a, ' const vp=e.target.closest("[data-vp]");if(vp){const n=vp.dataset.vp;f.vp=f.vp||{};if(f.vp[n])delete f.vp[n];else f.vp[n]=today();saveFicha(id);drawDoor();return}\n' + a)
+t = t.replace('</style>', PERS_CSS + '</style>', 1)
 # En la puerta: si el jefe/a no está confirmado pero su nombre sale de la web del centro, se muestra ya (marcado "web")
 a = '<span class="usa-j${u.n?"":" q"}">${u.n?esc(u.n):"¿Quién es el jefe/a?"}</span>'
 assert a in t, 'usa-j'
