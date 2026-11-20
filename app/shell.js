@@ -28,13 +28,14 @@ async function sample(prompt,opts={}){
  if(opts.onText)opts.onText({text:j.text});return {text:j.text};
 }
 let booted=false;
+let booting=false;
 async function boot(){
- if(booted)return;show("Cargando tus datos…");$("gForm").hidden=true;$("gDemo").hidden=true;$("gOut").hidden=false;
+ if(booted||booting)return;booting=true;show("Cargando tus datos…");$("gForm").hidden=true;$("gDemo").hidden=true;$("gOut").hidden=false;
  const {data:me,error:e1}=await sb.rpc("mi_editorial");
- if(e1||!me){show("Has entrado, pero tu cuenta todavía no está dada de alta en ninguna editorial.");return}
+ if(e1||!me){booting=false;show("Has entrado, pero tu cuenta todavía no está dada de alta en ninguna editorial.");return}
  ORG=me.org;
  const {data,error}=await sb.from("datasets").select("name,js").eq("org_id",ORG);
- if(error){show("No se pudieron cargar los datos ("+error.message+").");return}
+ if(error){booting=false;show("No se pudieron cargar los datos ("+error.message+").");return}
  if(!data.length){show("Tu editorial todavía no tiene datos cargados.");return}
  booted=true;
  const nombre=(me.nombre||"").split(" ")[0];
@@ -42,7 +43,7 @@ async function boot(){
    abrev:(me.propia||"").split(/\s+/).filter(w=>w.length>1).map(w=>w[0]).join("").toUpperCase().slice(0,3)||"TUY"};
  window.EXT={db:makeDB(),sample,sb};
  const order=["catalogo","centros","contactos","rutas"];
- const priv=order.map(n=>(data.find(d=>d.name===n)||{}).js||"").join("\n")+'\nZONAS=[...new Set(CENTROS.map(c=>c.zona).filter(Boolean))].sort();';
+ const priv=order.map(n=>(data.find(d=>d.name===n)||{}).js||"").join("\n")+'\nZONAS=[...new Set(CENTROS.map(c=>c.zona).filter(Boolean))].sort();\nconst PUNTOS=Object.fromEntries(Object.entries(CONTACTOS).filter(([k,v])=>v&&v.geo).map(([k,v])=>[k,v.geo]));';
  const code=$("app-code").textContent.replace("/*PRIVATE*/",()=>priv);
  const s=document.createElement("script");s.textContent=code;document.body.appendChild(s);
  gate.hidden=true;$("gOutBar").hidden=false;
