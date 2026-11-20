@@ -114,6 +114,14 @@ t = t.replace('h1,h2,.c-tt h1,.h-c2,.brand,#shIn h2{font-family:var(--display)!i
               'h1,h2,.c-tt h1,.h-c2,.brand,#shIn h2{font-family:var(--display)!important;font-weight:700!important;font-stretch:normal!important;letter-spacing:-.02em}')
 t = t.replace('.h-card{background:#011E41;', '.h-card{background:linear-gradient(135deg,#3B22C9 0%,#5B3DF5 100%);')
 t = t.replace('.h-card .h-c2{color:#C8DC00!important}', '.h-card .h-c2{color:#FFD9CC!important}')
+# La editorial propia siempre en el violeta de Textia (claro y oscuro); "defender" = el mismo violeta con trama
+for x, y in [('.gc.ox{background:#011E41}', '.gc.ox{background:var(--oup)}'),
+             (':root:not([data-theme="light"]) .gc.ox{background:#C8DC00;color:#011E41;box-shadow:none}',
+              ':root:not([data-theme="light"]) .gc.ox{background:var(--oup);color:#1E1B3A;box-shadow:none}'),
+             (':root:not([data-theme="light"]) .gc.ox.oxgo{background:repeating-linear-gradient(135deg,rgba(1,30,65,.45) 0 2px,transparent 2px 7px),#C8DC00;box-shadow:inset 0 0 0 2px #011E41,0 0 0 2px #C8DC00}',
+              ':root:not([data-theme="light"]) .gc.ox.oxgo{background:repeating-linear-gradient(135deg,rgba(30,27,58,.45) 0 2px,transparent 2px 7px),var(--oup);color:#1E1B3A;box-shadow:inset 0 0 0 2px var(--ink)}')]:
+    assert x in t, x[:40]
+    t = t.replace(x, y)
 for x, y in [('#011E41', '#1E1B3A'), ('#C8DC00', '#FF8F6E'), ('rgba(1,30,65', 'rgba(30,27,58'), ('rgba(200,220,0', 'rgba(255,143,110'),
              ('#0B2B52', '#24223A'), ('#2A4A75', '#3A3660'), ('#F2EEDA', '#F2F0FA'), ('#8E9AB0', '#9A96B0'), ('#011225', '#12111C')]:
     t = t.replace(x, y)
