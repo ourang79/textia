@@ -61,6 +61,14 @@ for n in (32, 180, 192, 512):
 json.dump({"name": "Textia", "short_name": "Textia", "start_url": ".", "display": "standalone", "background_color": "#14171f", "theme_color": "#14171f",
            "icons": [{"src": "icon-192.png?v=1", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png?v=1", "sizes": "512x512", "type": "image/png"}]},
           open(OUT / 'manifest.webmanifest', 'w'), ensure_ascii=False)
+# La primera versión instaló un service worker que guarda una copia vieja: este lo desinstala y recarga
+(OUT / 'sw.js').write_text('''self.addEventListener("install",()=>self.skipWaiting());
+self.addEventListener("activate",e=>e.waitUntil((async()=>{
+ for(const k of await caches.keys())await caches.delete(k);
+ await self.registration.unregister();
+ for(const c of await self.clients.matchAll({type:"window"}))c.navigate(c.url);
+})()));
+''')
 (OUT / 'robots.txt').write_text('User-agent: *\nDisallow: /\n')
 json.dump({"framework": None, "buildCommand": "", "installCommand": "", "outputDirectory": ".", "cleanUrls": True,
            "headers": [{"source": "/(.*)", "headers": [{"key": "X-Robots-Tag", "value": "noindex, nofollow"},
