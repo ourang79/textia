@@ -112,12 +112,20 @@ function team(people,zones){
  <div class="eq-c"><h2>Invitar a una persona</h2>
  <form id="eqInv"><label>Nombre y apellidos<input name="nombre" required autocomplete="off"></label><label>Correo<input name="email" type="email" required autocomplete="off"></label>
  <label>Rol${rsel("rep",'name="rol"')}</label><label>Zona${zsel("",'name="zona"')}</label><button class="btn pri" type="submit"${lock}>Enviar invitación</button></form>
- <p class="eq-msg" id="eqMsg" role="status" style="margin-top:8px">${ME.demo?"En la demo puedes ver cómo funciona, pero no cambiar el equipo ni invitar personas reales.":"Le llegará un correo para entrar y elegir su contraseña."}</p></div>`}
+ <p class="eq-msg" id="eqMsg" role="status" style="margin-top:8px">${ME.demo?"En la demo puedes ver cómo funciona, pero no cambiar el equipo ni invitar personas reales.":"Le llegará un correo para entrar y elegir su contraseña."}</p></div>
+ <div class="eq-c"><h2>Importar datos desde Excel</h2>
+ <p class="eq-msg" style="margin:-4px 0 10px">Centros, libros por curso, personas o alumnos. Da igual cómo se llamen las columnas o en qué orden estén: la IA las reconoce y tú lo revisas antes de cargar.</p>
+ <label>Archivo (.xlsx, .xls o .csv)<input type="file" id="eqFile" accept=".xlsx,.xls,.csv"></label>
+ <div id="eqImp" style="margin-top:12px"></div>`}
 
-async function onChange(e){const r=e.target.closest("[data-role],[data-zone]");if(!r||ME.rol!=="admin")return;
+async function onChange(e){
+ if(e.target.id==="eqFile")return onFile(e.target);
+ if(e.target.id==="eqDest"){IMP.destino=e.target.value;IMP.columnas=Object.fromEntries(IMP.cab.map(c=>[c,"ignorar"]));return drawImp()}
+ const mp=e.target.closest("[data-map]");if(mp){Object.keys(IMP.columnas).forEach(k=>{if(k!==mp.dataset.map&&IMP.columnas[k]===mp.value&&mp.value!=="ignorar")IMP.columnas[k]="ignorar"});IMP.columnas[mp.dataset.map]=mp.value;return drawImp()}
+ const r=e.target.closest("[data-role],[data-zone]");if(!r||ME.rol!=="admin")return;
  const id=r.dataset.role||r.dataset.zone;const patch=r.dataset.role?{role:r.value}:{zone_id:r.value||null};
  const {error}=await SB.from("members").update(patch).eq("id",id);if(error)alert("No se pudo guardar: "+error.message);else draw()}
-async function onClick(e){const b=e.target.closest("[data-del]");if(!b||ME.rol!=="admin")return;
+async function onClick(e){if(e.target.id==="eqLoad")return onLoad();const b=e.target.closest("[data-del]");if(!b||ME.rol!=="admin")return;
  if(!confirm(`¿Quitar a ${b.dataset.name} del equipo? Dejará de poder entrar en Textia.`))return;
  const {error}=await SB.from("members").delete().eq("id",b.dataset.del);if(error)alert("No se pudo quitar: "+error.message);else draw()}
 async function onInvite(e){if(e.target.id!=="eqInv")return;e.preventDefault();const m=document.getElementById("eqMsg");
@@ -125,6 +133,39 @@ async function onInvite(e){if(e.target.id!=="eqInv")return;e.preventDefault();co
  m.textContent="Enviando…";const {data:{session}}=await SB.auth.getSession();
  const r=await fetch(CFG.url+"/functions/v1/equipo",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token,apikey:CFG.key},body:JSON.stringify(body)});
  const j=await r.json().catch(()=>({}));m.textContent=r.ok?(j.mensaje||"Invitación enviada."):(j.error||"No se pudo enviar la invitación.");if(r.ok){e.target.reset();draw()}}
+
+// ---------- Importar Excel ----------
+let IMP=null;const DEST={centros:"Centros",libros:"Libros por curso",personas:"Personas",alumnos:"Alumnos por curso"};
+function loadXLSX(){return window.XLSX?Promise.resolve():new Promise((ok,ko)=>{const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";sc.onload=ok;sc.onerror=()=>ko(new Error("No se pudo cargar el lector de Excel"));document.head.appendChild(sc)})}
+async function callImp(body){const {data:{session}}=await SB.auth.getSession();
+ const r=await fetch(CFG.url+"/functions/v1/importar",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token,apikey:CFG.key},body:JSON.stringify(body)});
+ const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||"Error al importar"),{data:j});return j}
+async function onFile(inp){const box=document.getElementById("eqImp");const f=inp.files&&inp.files[0];if(!f)return;
+ box.innerHTML='<p class="eq-msg">Leyendo el archivo…</p>';
+ try{await loadXLSX();const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""}).map(r=>r.map(v=>String(v).trim()));
+  let h=rows.findIndex((r,i)=>i<15&&r.filter(Boolean).length>=2);if(h<0)throw new Error("No encuentro la fila de cabeceras.");
+  const cab=rows[h].map((c,i)=>c||("Columna "+(i+1)));const filas=rows.slice(h+1).filter(r=>r.some(Boolean)).map(r=>cab.map((_,i)=>r[i]??""));
+  if(!filas.length)throw new Error("El archivo no tiene filas de datos.");
+  IMP={nombre:f.name,cab,filas,destino:null,columnas:{},campos:null,nota:""};
+  box.innerHTML='<p class="eq-msg">Reconociendo las columnas…</p>';
+  try{const m=await callImp({accion:"mapear",cabeceras:cab,filas:filas.slice(0,12),nombre_archivo:f.name});Object.assign(IMP,{destino:m.destino,columnas:m.columnas,campos:m.campos,nota:m.nota||""})}
+  catch(e){IMP.campos=(e.data&&e.data.campos)||null;IMP.destino="libros";IMP.columnas=Object.fromEntries(cab.map(c=>[c,"ignorar"]));IMP.nota="No he podido reconocerlas automáticamente ("+e.message+"). Puedes asignarlas a mano."}
+  drawImp()}catch(e){box.innerHTML=`<p class="eq-msg">${H(e.message)}</p>`}}
+function drawImp(){const box=document.getElementById("eqImp");if(!box||!IMP)return;
+ if(!IMP.campos){box.innerHTML=`<p class="eq-msg">${H(IMP.nota)}</p>`;return}
+ const cs=IMP.campos[IMP.destino]||{};const ej=i=>{const v=IMP.filas.find(r=>r[i]);return v?v[i]:""};
+ box.innerHTML=`<p class="eq-msg" style="margin-bottom:10px"><b>${H(IMP.nombre)}</b> · ${IMP.filas.length} filas. ${H(IMP.nota)}</p>
+ <label style="max-width:320px">Qué contiene<select id="eqDest">${Object.entries(DEST).map(([k,n])=>`<option value="${k}"${k===IMP.destino?" selected":""}>${n}</option>`).join("")}</select></label>
+ <div class="eq-tb" style="margin-top:10px"><table><thead><tr><th>Columna del Excel</th><th>Ejemplo</th><th>Campo en Textia</th></tr></thead><tbody>
+ ${IMP.cab.map((c,i)=>`<tr><td><b>${H(c)}</b></td><td class="eq-s">${H(String(ej(i)).slice(0,40))}</td><td><select data-map="${H(c)}" aria-label="Campo para ${H(c)}"><option value="ignorar">— No importar —</option>${Object.entries(cs).map(([k,d])=>`<option value="${k}"${IMP.columnas[c]===k?" selected":""}>${H(d.replace(/\*$/," (obligatorio)"))}</option>`).join("")}</select></td></tr>`).join("")}
+ </tbody></table></div>
+ <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px"><button class="btn pri" type="button" id="eqLoad"${ME.demo?" disabled":""}>Cargar ${IMP.filas.length} filas</button>
+ <span class="eq-msg" id="eqImpMsg" role="status">${ME.demo?"En la demo puedes ver cómo reconoce las columnas, pero no cargar datos.":IMP.destino==="libros"?"Los libros de cada centro del archivo sustituyen a los que tuviera para este curso.":""}</span></div>`}
+async function onLoad(){const m=document.getElementById("eqImpMsg");const b=document.getElementById("eqLoad");b.disabled=true;m.textContent="Cargando…";
+ try{const r=await callImp({accion:"cargar",destino:IMP.destino,columnas:IMP.columnas,cabeceras:IMP.cab,filas:IMP.filas,nombre_archivo:IMP.nombre});const st=r.stats||{};
+  m.innerHTML=`Hecho: ${st.nuevos||0} nuevos, ${st.actualizados||0} actualizados${st.con_error?`, ${st.con_error} con problemas`:""}. Vuelve a entrar en Textia para ver los datos al día.`+((r.errores||[]).length?`<br>${r.errores.slice(0,8).map(e=>`Fila ${e.fila}: ${H(e.motivo)}`).join("<br>")}`:"")}
+ catch(e){m.textContent=e.message;b.disabled=false}}
 
 window.TextiaEquipo={init};
 })();
