@@ -142,7 +142,7 @@ async function callImp(body){const {data:{session}}=await SB.auth.getSession();
  const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||"Error al importar"),{data:j});return j}
 async function onFile(inp){const box=document.getElementById("eqImp");const f=inp.files&&inp.files[0];if(!f)return;
  box.innerHTML='<p class="eq-msg">Leyendo el archivo…</p>';
- try{await loadXLSX();const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});const ws=wb.Sheets[wb.SheetNames[0]];
+ try{await loadXLSX();const wb=/\.csv$/i.test(f.name)?XLSX.read(await f.text(),{type:"string"}):XLSX.read(await f.arrayBuffer(),{type:"array"});const ws=wb.Sheets[wb.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""}).map(r=>r.map(v=>String(v).trim()));
   let h=rows.findIndex((r,i)=>i<15&&r.filter(Boolean).length>=2);if(h<0)throw new Error("No encuentro la fila de cabeceras.");
   const cab=rows[h].map((c,i)=>c||("Columna "+(i+1)));const filas=rows.slice(h+1).filter(r=>r.some(Boolean)).map(r=>cab.map((_,i)=>r[i]??""));
@@ -150,7 +150,7 @@ async function onFile(inp){const box=document.getElementById("eqImp");const f=in
   IMP={nombre:f.name,cab,filas,destino:null,columnas:{},campos:null,nota:""};
   box.innerHTML='<p class="eq-msg">Reconociendo las columnas…</p>';
   try{const m=await callImp({accion:"mapear",cabeceras:cab,filas:filas.slice(0,12),nombre_archivo:f.name});Object.assign(IMP,{destino:m.destino,columnas:m.columnas,campos:m.campos,nota:m.nota||""})}
-  catch(e){IMP.campos=(e.data&&e.data.campos)||null;IMP.destino="libros";IMP.columnas=Object.fromEntries(cab.map(c=>[c,"ignorar"]));IMP.nota="No he podido reconocerlas automáticamente ("+e.message+"). Puedes asignarlas a mano."}
+  catch(e){IMP.campos=(e.data&&e.data.campos)||null;IMP.destino="libros";IMP.columnas=Object.fromEntries(cab.map(c=>[c,"ignorar"]));IMP.nota="No he podido reconocerlas automáticamente: "+e.message+" Puedes asignarlas a mano."}
   drawImp()}catch(e){box.innerHTML=`<p class="eq-msg">${H(e.message)}</p>`}}
 function drawImp(){const box=document.getElementById("eqImp");if(!box||!IMP)return;
  if(!IMP.campos){box.innerHTML=`<p class="eq-msg">${H(IMP.nota)}</p>`;return}
