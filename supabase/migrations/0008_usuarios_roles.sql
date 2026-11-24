@@ -238,3 +238,15 @@ begin
   return r;
 end $$;
 revoke all on function private.demo_reset() from public, anon, authenticated;
+
+-- 9. En la demo nadie puede cambiar ni quitar personas del equipo desde la app (pendiente de aplicar)
+create or replace function private.demo_members_lock() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and exists (select 1 from orgs where id = coalesce(old.org_id, new.org_id) and slug = 'demo') then
+    raise exception 'En la demo no se puede cambiar el equipo';
+  end if;
+  return coalesce(new, old);
+end $$;
+drop trigger if exists demo_members_lock on public.members;
+create trigger demo_members_lock before update or delete on public.members for each row execute function private.demo_members_lock();

@@ -1,7 +1,7 @@
 // Textia · pestaña Equipo: informes para jefes de zona y dirección, y gestión de personas para quien administra
 (function(){
 const H=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const N=n=>Math.round(n||0).toLocaleString("es-ES");
+const N=n=>String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g,".");
 const ROL={admin:"Dirección / administración",manager:"Jefe/a de zona",rep:"Comercial"};
 const ICON='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-3-5.5"/></svg>';
 const CSS=`#eqOv{position:fixed;left:0;right:0;top:0;bottom:calc(var(--nav-h,56px) + 10px + env(safe-area-inset-bottom,0px));overflow:auto;background:var(--bg);z-index:29;padding:20px 16px 40px}
@@ -98,20 +98,21 @@ async function draw(){
  </div>`}
 
 function team(people,zones){
- const zsel=(v,attr)=>`<select ${attr}><option value="">Todas las zonas</option>${zones.map(z=>`<option value="${z.id}"${z.id===v?" selected":""}>${H(z.name)}</option>`).join("")}</select>`;
- const rsel=(v,attr)=>`<select ${attr}>${Object.entries(ROL).map(([k,n])=>`<option value="${k}"${k===v?" selected":""}>${n}</option>`).join("")}</select>`;
+ const lock=ME.demo?" disabled":"";
+ const zsel=(v,attr)=>`<select ${attr}${lock}><option value="">Todas las zonas</option>${zones.map(z=>`<option value="${z.id}"${z.id===v?" selected":""}>${H(z.name)}</option>`).join("")}</select>`;
+ const rsel=(v,attr)=>`<select ${attr}${lock}>${Object.entries(ROL).map(([k,n])=>`<option value="${k}"${k===v?" selected":""}>${n}</option>`).join("")}</select>`;
  return `<div class="eq-c"><h2>Personas del equipo</h2>
  <p class="eq-msg" style="margin:-4px 0 10px">Cada comercial ve solo los centros de su zona. Los jefes de zona sin zona asignada y la dirección ven todo.</p>
  <div class="eq-tb"><table><thead><tr><th>Nombre</th><th>Rol</th><th>Zona</th><th>Estado</th><th></th></tr></thead><tbody>
  ${people.map(p=>`<tr><td><b>${H(p.full_name)}</b><br><span class="eq-s">${H(p.email||"")}</span></td>
   <td>${rsel(p.role,`data-role="${p.id}" aria-label="Rol de ${H(p.full_name)}"`)}</td><td>${zsel(p.zone_id,`data-zone="${p.id}" aria-label="Zona de ${H(p.full_name)}"`)}</td>
   <td>${p.activo?'<span class="eq-pill">✓ Activo</span>':'<span class="eq-pill p">Invitación pendiente</span>'}</td>
-  <td>${p.id===ME.member?"":`<button type="button" class="lnk" data-del="${p.id}" data-name="${H(p.full_name)}">Quitar</button>`}</td></tr>`).join("")}
+  <td>${p.id===ME.member||ME.demo?"":`<button type="button" class="lnk" data-del="${p.id}" data-name="${H(p.full_name)}">Quitar</button>`}</td></tr>`).join("")}
  </tbody></table></div></div>
  <div class="eq-c"><h2>Invitar a una persona</h2>
  <form id="eqInv"><label>Nombre y apellidos<input name="nombre" required autocomplete="off"></label><label>Correo<input name="email" type="email" required autocomplete="off"></label>
- <label>Rol${rsel("rep",'name="rol"')}</label><label>Zona${zsel("",'name="zona"')}</label><button class="btn pri" type="submit">Enviar invitación</button></form>
- <p class="eq-msg" id="eqMsg" role="status" style="margin-top:8px">${ME.demo?"En la demo puedes mirar, pero no invitar personas reales.":"Le llegará un correo para entrar y elegir su contraseña."}</p></div>`}
+ <label>Rol${rsel("rep",'name="rol"')}</label><label>Zona${zsel("",'name="zona"')}</label><button class="btn pri" type="submit"${lock}>Enviar invitación</button></form>
+ <p class="eq-msg" id="eqMsg" role="status" style="margin-top:8px">${ME.demo?"En la demo puedes ver cómo funciona, pero no cambiar el equipo ni invitar personas reales.":"Le llegará un correo para entrar y elegir su contraseña."}</p></div>`}
 
 async function onChange(e){const r=e.target.closest("[data-role],[data-zone]");if(!r||ME.rol!=="admin")return;
  const id=r.dataset.role||r.dataset.zone;const patch=r.dataset.role?{role:r.value}:{zone_id:r.value||null};
