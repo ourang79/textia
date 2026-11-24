@@ -29,8 +29,8 @@ gate = '''<div id="gate"><div class="g-box"><div class="brand">Text<span style="
 <label class="f">Contraseña<input id="gPass" type="password" autocomplete="current-password" required></label>
 <button class="btn pri" type="submit">Entrar</button>
 <div class="g-links"><button class="lnk" type="button" id="gReset">He olvidado la contraseña</button></div></form>
-<div id="gDemo"><p class="note" style="margin:6px 0 4px">¿Quieres verla por dentro? Provincia, centros, profesores y editoriales inventados.</p>
-<button class="btn" type="button" id="gDemoBtn">Entrar en la demo</button></div>
+<div id="gDemo"><p class="note" style="margin:6px 0 4px">Entra en la demo: provincia, centros, profesores y editoriales inventados.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="gDemoBtn">Como comercial</button><button class="btn" type="button" id="gDemoDir">Como dirección</button></div></div>
 <p id="gMsg" class="note" role="status"></p><button class="lnk" type="button" id="gOut" hidden>Salir</button></div></div>
 <button id="gOutBar" class="lnk" type="button" hidden>Salir</button>'''
 gcss = '''<style>#gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:16px}
@@ -51,11 +51,13 @@ html = f'''<!doctype html><html lang="es"><head><meta charset="utf-8">
 <script type="text/plain" id="app-code">{code}</script>
 <script>window.TEXTIA_CFG={json.dumps(cfg)};</script>
 <script src="supabase.js"></script>
+<script src="equipo.js"></script>
 <script src="shell.js"></script>
 </body></html>'''
 (OUT / 'index.html').write_text(html)
 shutil.copy(ROOT / 'web/vendor/supabase.js', OUT / 'supabase.js')
 shutil.copy(SRC / 'shell.js', OUT / 'shell.js')
+shutil.copy(SRC / 'equipo.js', OUT / 'equipo.js')
 for n in (32, 180, 192, 512):
     shutil.copy(SRC / f'icon/icon-{n}.png', OUT / f'icon-{n}.png')
 json.dump({"name": "Textia", "short_name": "Textia", "start_url": ".", "display": "standalone", "background_color": "#5B3DF5", "theme_color": "#5B3DF5",
